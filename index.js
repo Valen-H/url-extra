@@ -46,6 +46,7 @@ const proxx = {
 			case 'querystringraw':
 			case 'querystring':
 				value = value ? '?' + value : null;
+			case 'searchraw':
 			case 'search':
 				target.search = value ? value : null;
 				value = receiver.pathname;
@@ -85,14 +86,17 @@ const proxx = {
 };
 
 exports.parse = function urlParse(urlString, slashesDenoteHost) {
-	var ur = url.parse(urlString, true, slashesDenoteHost);
+	var ur = url.parse(urlString, false, slashesDenoteHost);
 	ur.protocolraw = (ur.protocol || ':').replace(/:$/, '');
 	ur.protocolfull = ur.protocol ? ur.protocol + '//' : null;
 	ur.hashraw = (ur.hash || '#').replace(/^#/, '');
 	ur.autharray = (ur.auth || ':').split(':');
-	ur.querystringraw = querystring.stringify(ur.query);
+	ur.query = (ur.search || '?').replace(/^\?/, '');
+	ur.querystringraw = ur.query;
+	ur.querystring = querystring.unescape(ur.querystringraw);
 	ur.queryraw = querystring.parse(ur.querystringraw, null, null, { decodeURIComponent: str => str, maxKeys: 0 });
-	ur.querystring = querystring.unescape(querystring.stringify(ur.query));
+	ur.query = querystring.parse(ur.querystring);
+	ur.searchraw = querystring.unescape(ur.search || '?');
 	ur.pathobject = path.parse(path.normalize(ur.pathname = ur.pathname || '/'));
 	ur.file = '/' + (path.basename(ur.pathname) || ur.pathobject.base);
 	ur.fileraw = path.basename(ur.pathname) || ur.pathobject.base;
@@ -115,6 +119,7 @@ const Url = exports.Url = function Url() {
 	this.hostname = null; //i
 	this.hash = null; //i
 	this.search = null; //i
+	this.searchraw = null;
 	this.query = null;
 	this.querystring = null; //
 	this.queryobject = null;
@@ -142,6 +147,7 @@ const Url = exports.Url = function Url() {
 "  http:   // user:pass @ host.com : 8080   /p/a/t/h  ?  query=string   #hash "
 │          ││           │          │      │          │ │              │       │
 └──────────┴┴───────────┴──────────┴──────┴──────────┴─┴──────────────┴───────┘
+  Url {
   protocol: 'http:',
   slashes: true,
   auth: 'user:pass',
@@ -149,23 +155,29 @@ const Url = exports.Url = function Url() {
   port: '8080',
   hostname: 'host.com',
   hash: '#hash',
-  search: '?query=string',
-  query: { query: 'string' },
-  pathname: '/p/a/t/h',
-  path: '/p/a/t/h?query=string',
-  href: 'http://user:pass@host.com:8080/p/a/t/h?query=string#hash',
+  search: '?query=string%21',
+  query: { query: 'string!' },
+  pathname: '/p/a/t/h/file.txt',
+  path: '/p/a/t/h/file.txt?query=string%21',
+  href: 'http://user:pass@host.com:8080/p/a/t/h/file.txt?query=string%21#hash',
   protocolraw: 'http',
   protocolfull: 'http://',
   hashraw: 'hash',
   autharray: [ 'user', 'pass' ],
-  querystringraw: 'query=string',
-  queryraw: { query: 'string' },
-  querystring: 'query=string',
-  pathobject: { root: '/', dir: '/p/a/t', base: 'h', ext: '', name: 'h' },
-  file: '/h',
-  fileraw: 'h',
-  filename: 'h',
-  extension: '',
-  extensionfull: '',
-  directory: '/p/a/t'
+  querystringraw: 'query=string%21',
+  querystring: 'query=string!',
+  queryraw: { query: 'string%21' },
+  searchraw: '?query=string!',
+  pathobject: 
+   { root: '/',
+     dir: '/p/a/t/h',
+     base: 'file.txt',
+     ext: '.txt',
+     name: 'file' },
+  file: '/file.txt',
+  fileraw: 'file.txt',
+  filename: 'file',
+  extension: 'txt',
+  extensionfull: '.txt',
+  directory: '/p/a/t/h' }
 */
