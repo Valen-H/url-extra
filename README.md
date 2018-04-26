@@ -1,5 +1,5 @@
-## url-extra  
- # An extension of the builtin `url` module.  
+# url-extra  
+ ## An extension of the builtin `url` module.  
   
   protocol: 'http:',  
   slashes: true,  
@@ -27,3 +27,5 @@
   extension: '',  
   extensionfull: '',  
   directory: '/p/a/t'  
+  
+> **By editing one of the properties of the Url object returned by url.parse, the whole object gets rebuilded!**
