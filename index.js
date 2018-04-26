@@ -1,110 +1,145 @@
-const url = require('url');
-//const querystring = require('querystring');
+const url = require('url'),
+querystring = require('querystring'),
+path = require('path'),
+util = require('util');
 
 function assign() {
-  const args = [].slice.call(arguments).filter(i => i);
-  const dest = args.shift();
-  args.forEach(src => {
-    Object.keys(src).forEach(key => {
-      dest[key] = src[key];
-    });
-  });
-  return dest;
+	const args = [].slice.call(arguments).filter(i => i);
+	const dest = args.shift();
+	args.forEach(src => {
+		Object.keys(src).forEach(key => {
+			dest[key] = src[key];
+		});
+	});
+	return dest;
 } //assign
+
 assign(exports, url);
 
-exports.parse = function(urlString, parseQueryString = true, slashesDenoteHost) {
-	var ur = url.parse(urlString, parseQueryString, slashesDenoteHost);
-	ur.file = ur.pathname.replace(/^.+\//g, '').replace(/^\//, '');
-	ur.filename = ur.file.replace(/\.[^.]+?$/, '') || ur.file;
-	ur.extension = ur.file.split('.').length >= 2 ? ur.file.split('.')[ur.file.split('.').length - 1] : null;
-	ur.directory = ur.pathname.replace(ur.file, '') || '/';
-	return ur;
+const proxx = {
+	set(target, property, value, receiver) {
+		switch (property) {
+			case 'slashes':
+				target.slashes = value;
+				value = receiver.href;
+			case 'href':
+				Object.assign(target, exports.parse(value));
+				break;
+			case 'protocolfull':
+				value = value ? value.replace(/:\/{1,2}$/, '') : null;
+			case 'protocolraw':
+				value = value ? value + ':' : null;
+			case 'protocol':
+				Object.assign(target, exports.parse((value ? value : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (receiver.host ? receiver.host : '') + (receiver.path ? receiver.path : '') + (receiver.hash ? receiver.hash : '')));
+				break;
+			case 'auth':
+				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (value ? value + '@' : '') + (receiver.host ? receiver.host : '') + (receiver.path ? receiver.path : '') + (receiver.hash ? receiver.hash : '')));
+				break;
+			case 'port':
+				target.port = value;
+				value = receiver.hostname;
+			case 'hostname':
+				value = value ? value + (receiver.port ? ':' + receiver.port : '') : null;
+			case 'host':
+				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (value ? value : '') + (receiver.path ? receiver.path : '') + (receiver.hash ? receiver.hash : '')));
+				break;
+			case 'querystringraw':
+			case 'querystring':
+				value = value ? '?' + value : null;
+			case 'search':
+				target.search = value ? value : null;
+				value = receiver.pathname;
+			case 'pathname':
+				value = value ? value + receiver.search : null;
+			case 'path':
+				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (receiver.host ? receiver.host : '') + (value ? value : '') + (receiver.hash ? receiver.hash : '')));
+				break;
+			case 'hashraw':
+				value = value ? '#' + value : null;
+			case 'hash':
+				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (receiver.host ? receiver.host : '') + (receiver.path ? receiver.path : '') + (value ? value : '')));
+				break;
+			case 'extensionraw':
+				value = value ? value.replace(/^\./, '') : null;
+			case 'extension':
+				target.extension = value ? value : null;
+				value = receiver.filename;
+			case 'filename':
+				value = value ? value + '.' + receiver.extension : null;
+			case 'fileraw':
+				value = value ? '/' + value : null;
+			case 'file':
+				value = receiver.pathname.replace(new RegExp(receiver.file.replace(/\\/g, '\\\\') + '$', ''), value ? value : '');
+				value = value ? value + receiver.search : null;
+				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (receiver.host ? receiver.host : '') + (value ? value : '') + (receiver.hash ? receiver.hash : '')));
+				break;
+			case 'directory':
+				value = receiver.pathname.replace(new RegExp('^' + receiver.directory.replace(/\\/g, '\\\\'), ''), value ? value : '');
+				value = value ? value + receiver.search : null;
+				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (receiver.host ? receiver.host : '') + (value ? value : '') + (receiver.hash ? receiver.hash : '')));
+				break;
+			default:
+				target[property] = value;
+		}
+	}
 };
 
-exports.Url = function Url() {
-  this.protocol = null;
-  this.slashes = null;
-  this.auth = null;
-  this.host = null;
-  this.port = null;
-  this.hostname = null;
-  this.hash = null;
-  this.search = null;
-  this.query = null;
-  this.pathname = null;
-  this.path = null;
-  this.href = null;
-  this.file = null;
-  this.filename = null;
-  this.extension = null;
-  this.directory = null;
+exports.parse = function urlParse(urlString, slashesDenoteHost) {
+	var ur = url.parse(urlString, true, slashesDenoteHost);
+	ur.protocolraw = (ur.protocol || ':').replace(/:$/, '');
+	ur.protocolfull = ur.protocol ? ur.protocol + '//' : null;
+	ur.hashraw = (ur.hash || '#').replace(/^#/, '');
+	ur.autharray = (ur.auth || ':').split(':');
+	ur.querystringraw = querystring.stringify(ur.query);
+	ur.queryraw = querystring.parse(ur.querystringraw, null, null, { decodeURIComponent: str => str, maxKeys: 0 });
+	ur.querystring = querystring.unescape(querystring.stringify(ur.query));
+	ur.pathobject = path.parse(path.normalize(ur.pathname = ur.pathname || '/'));
+	ur.file = '/' + (path.basename(ur.pathname) || ur.pathobject.base);
+	ur.fileraw = path.basename(ur.pathname) || ur.pathobject.base;
+	ur.filename = ur.pathobject.name || ur.fileraw;
+	ur.extension = (path.extname(ur.pathname) || ur.pathobject.ext).replace(/^\./, '');
+	ur.extensionfull = ur.pathobject.ext;
+	ur.directory = path.dirname(ur.pathname) || ur.pathobject.root;
+	return new Proxy(ur, proxx);
 };
 
-/*exports.URL = class URL {
-  constructor(input, base) {
-    // toUSVString is not needed.
-    input = `${input}`;
-    if (base !== undefined &&
-        (!base[searchParams] || !base[searchParams][searchParams])) {
-      base = new URL(base);
-    }
-    parse(this, input, base);
-  }
+const Url = exports.Url = function Url() {
+	this.protocol = null; //i
+	this.protocolraw = null; //
+	this.protocolfull = null; //
+	this.slashes = null; //i
+	this.auth = null; //i
+	this.autharray = null;
+	this.host = null; //i
+	this.port = null; //i
+	this.hostname = null; //i
+	this.hash = null; //i
+	this.search = null; //i
+	this.query = null;
+	this.querystring = null; //
+	this.queryobject = null;
+	this.href = null; //i
+	this.pathname = null; //i
+	this.path = null; //i
+	this.pathobject = null;
+	this.file = null; //
+	this.fileraw = null; //
+	this.filename = null; //
+	this.directory = null; //
+	this.extension = null; //
+	this.extensionfull = null; //
+};
 
-  get [special]() {
-    return (this[context].flags & URL_FLAGS_SPECIAL) !== 0;
-  }
-
-  get [cannotBeBase]() {
-    return (this[context].flags & URL_FLAGS_CANNOT_BE_BASE) !== 0;
-  }
-
-  // https://url.spec.whatwg.org/#cannot-have-a-username-password-port
-  get [cannotHaveUsernamePasswordPort]() {
-    const { host, scheme } = this[context];
-    return ((host == null || host === '') ||
-            this[cannotBeBase] ||
-            scheme === 'file:');
-  }
-
-  [util.inspect.custom](depth, opts) {
-    if (this == null ||
-        Object.getPrototypeOf(this[context]) !== URLContext.prototype) {
-      throw new errors.TypeError('ERR_INVALID_THIS', 'URL');
-    }
-
-    if (typeof depth === 'number' && depth < 0)
-      return opts.stylize('[Object]', 'special');
-
-    var ctor = getConstructorOf(this);
-
-    var obj = Object.create({
-      constructor: ctor === null ? URL : ctor
-    });
-
-    obj.href = this.href;
-    obj.origin = this.origin;
-    obj.protocol = this.protocol;
-    obj.username = this.username;
-    obj.password = this.password;
-    obj.host = this.host;
-    obj.hostname = this.hostname;
-    obj.port = this.port;
-    obj.pathname = this.pathname;
-    obj.search = this.search;
-    obj.searchParams = this.searchParams;
-    obj.hash = this.hash;
-    obj.file = this.file;
-    obj.filename = this.filename;
-    obj.extension = this.extension;
-
-    if (opts.showHidden) {
-      obj.cannotBeBase = this[cannotBeBase];
-      obj.special = this[special];
-      obj[context] = this[context];
-    }
-
-    return util.inspect(obj, opts);
-  }
-}*/
+/*
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                    href                                     │
+├──────────┬┬───────────┬─────────────────┬───────────────────────────┬───────┤
+│ protocol ││   auth    │      host       │           path            │ hash  │
+│          ││           ├──────────┬──────┼──────────┬────────────────┤       │
+│          ││           │ hostname │ port │ pathname │     search     │       │
+│          ││           │          │      │          ├─┬──────────────┤       │
+│          ││           │          │      │          │ │    query     │       │
+"  http:   // user:pass @ host.com : 8080   /p/a/t/h  ?  query=string   #hash "
+│          ││           │          │      │          │ │              │       │
+└──────────┴┴───────────┴──────────┴──────┴──────────┴─┴──────────────┴───────┘
+*/
