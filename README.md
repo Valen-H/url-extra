@@ -1,6 +1,7 @@
 # url-extra  
  ## An extension of the builtin `url` module.  
   
+  ```javascript  
   protocol: 'http:',  
   slashes: true,  
   auth: 'user:pass',  
@@ -12,7 +13,7 @@
   query: { query: 'string!' },  
   pathname: '/p/a/t/h/file.txt',  
   path: '/p/a/t/h/file.txt?query=string%21',  
-  href: 'http:\//user:pass@host.com:8080/p/a/t/h/file.txt?query=string%21#hash',  
+  href: 'http:\//user:pass\@host.com:8080/p/a/t/h/file.txt?query=string%21#hash',  
   protocolraw: 'http',  
   protocolfull: 'http://',  
   hashraw: 'hash',  
@@ -32,5 +33,6 @@
   extension: 'txt',  
   extensionfull: '.txt',  
   directory: '/p/a/t/h'  
+  ```  
   
 > **By editing one of the properties of the Url object returned by url.parse, the whole object gets rebuilded!**
