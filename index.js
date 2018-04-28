@@ -1,3 +1,5 @@
+'use extra';
+
 const url = require('url'),
 querystring = require('querystring'),
 path = require('path'),
@@ -20,7 +22,7 @@ const proxx = {
 	set(target, property, value, receiver) {
 		switch (property) {
 			case 'slashes':
-				target.slashes = value;
+				target.slashes = !!value;
 				value = receiver.href;
 			case 'href':
 				Object.assign(target, exports.parse(value));
@@ -36,7 +38,7 @@ const proxx = {
 				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (value ? value + '@' : '') + (receiver.host ? receiver.host : '') + (receiver.path ? receiver.path : '') + (receiver.hash ? receiver.hash : '')));
 				break;
 			case 'port':
-				target.port = value;
+				target.port = value * 1;
 				value = receiver.hostname;
 			case 'hostname':
 				value = value ? value + (receiver.port ? ':' + receiver.port : '') : null;
