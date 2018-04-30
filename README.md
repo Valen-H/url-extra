@@ -1,20 +1,20 @@
 # url-extra  
 ## An extension of the builtin `url` module.  
   
-  ```javascript  
+  ```javascript
   Url {
   protocol: 'http:',
   slashes: true,
   auth: 'user:pass',
-  host: 'host.com:8080',
-  port: '8080',
+  host: 'host.com:80',
+  port: '80',
   hostname: 'host.com',
   hash: '#hash',
   search: '?query=string%21',
   query: { query: 'string!' },
   pathname: '/p/a/t/h/file.txt',
   path: '/p/a/t/h/file.txt?query=string%21',
-  href: 'http://user:pass@host.com:8080/p/a/t/h/file.txt?query=string%21#hash',
+  href: 'http://user:pass@host.com:80/p/a/t/h/file.txt?query=string%21#hash',
   protocolraw: 'http',
   protocolfull: 'http://',
   hashraw: 'hash',
@@ -23,7 +23,7 @@
   querystring: 'query=string!',
   queryraw: { query: 'string%21' },
   searchraw: '?query=string!',
-  pathobject: 
+  pathobject:
    { root: '/',
      dir: '/p/a/t/h',
      base: 'file.txt',
