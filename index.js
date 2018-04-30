@@ -1,4 +1,4 @@
-'use extra';
+'use strict';
 
 const url = require('url'),
 querystring = require('querystring'),
@@ -19,7 +19,7 @@ function assign() {
 assign(exports, url);
 
 const proxx = {
-	set(target, property, value, receiver) {
+	set(target, property, value = null, receiver) {
 		switch (property) {
 			case 'slashes':
 				target.slashes = !!value;
@@ -53,7 +53,7 @@ const proxx = {
 				target.search = value ? value : null;
 				value = receiver.pathname;
 			case 'pathname':
-				value = value ? value + receiver.search : null;
+				value = value ? value + (receiver.search ? receiver.search : '') : null;
 			case 'path':
 				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (receiver.host ? receiver.host : '') + (value ? value : '') + (receiver.hash ? receiver.hash : '')));
 				break;
@@ -68,22 +68,28 @@ const proxx = {
 				target.extension = value ? value : null;
 				value = receiver.filename;
 			case 'filename':
-				value = value ? value + '.' + receiver.extension : null;
+				value = value ? value + (receiver.extension ? '.' + receiver.extension : '') : null;
 			case 'fileraw':
 				value = value ? '/' + value : null;
 			case 'file':
-				value = receiver.pathname.replace(new RegExp(receiver.file.replace(/\\/g, '\\\\') + '$', ''), value ? value : '');
-				value = value ? value + receiver.search : null;
+				value = (receiver.pathname || '/').replace(new RegExp((receiver.file || '/').replace(/\\/g, '\\\\') + '$', ''), value ? value : '');
+				value = value ? value + (receiver.search ? receiver.search : '') : null;
 				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (receiver.host ? receiver.host : '') + (value ? value : '') + (receiver.hash ? receiver.hash : '')));
 				break;
 			case 'directory':
-				value = receiver.pathname.replace(new RegExp('^' + receiver.directory.replace(/\\/g, '\\\\'), ''), value ? value : '');
-				value = value ? value + receiver.search : null;
+				value = (receiver.pathname || '/').replace(new RegExp('^' + (receiver.directory || '/').replace(/\\/g, '\\\\'), ''), value ? value : '');
+				value = value ? value + (receiver.search ? receiver.search : '') : null;
 				Object.assign(target, exports.parse((receiver.protocol ? receiver.protocol : '') + (receiver.slashes ? '//' : '') + (receiver.auth ? receiver.auth + '@' : '') + (receiver.host ? receiver.host : '') + (value ? value : '') + (receiver.hash ? receiver.hash : '')));
 				break;
 			default:
-				target[property] = value;
+				return target[property] = value;
 		}
+		for (let i in target) {
+			if (typeof receiver[i] == 'string' && !receiver[i]) {
+				target[i] = null;
+			}
+		}
+		return true;
 	}
 };
 
@@ -100,13 +106,15 @@ exports.parse = function urlParse(urlString, slashesDenoteHost) {
 	ur.query = querystring.parse(ur.querystring);
 	ur.searchraw = querystring.unescape(ur.search || '?');
 	ur.pathobject = path.parse(path.normalize(ur.pathname = ur.pathname || '/'));
-	ur.file = '/' + (path.basename(ur.pathname) || ur.pathobject.base);
-	ur.fileraw = path.basename(ur.pathname) || ur.pathobject.base;
+	ur.file = '/' + (path.basename(ur.pathname || '/') || ur.pathobject.base);
+	ur.fileraw = path.basename(ur.pathname || '/') || ur.pathobject.base;
 	ur.filename = ur.pathobject.name || ur.fileraw;
-	ur.extension = (path.extname(ur.pathname) || ur.pathobject.ext).replace(/^\./, '');
+	ur.extension = (path.extname(ur.pathname || '/') || ur.pathobject.ext).replace(/^\./, '');
 	ur.extensionfull = ur.pathobject.ext;
-	ur.directory = path.dirname(ur.pathname) || ur.pathobject.root;
-	return new Proxy(ur, proxx);
+	ur.directory = path.dirname(ur.pathname || '/') || ur.pathobject.root;
+	let prox = Proxy.revocable(ur, proxx);
+	prox.proxy._revoke = prox.revoke;
+	return prox.proxy;
 };
 
 const Url = exports.Url = function Url() {

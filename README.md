@@ -1,5 +1,5 @@
 # url-extra  
- ## An extension of the builtin `url` module.  
+## An extension of the builtin `url` module.  
   
   ```javascript  
   Url {
@@ -37,4 +37,4 @@
   directory: '/p/a/t/h' }
   ```  
   
-> **By editing one of the properties of the Url object returned by url.parse, the whole object gets rebuilded!**
+> **By editing one of the properties of the Url object returned by url.parse, the whole object gets rebuilded!**  
